@@ -42,10 +42,14 @@ env/
 # Data files (optional - 크롤링 데이터는 용량이 크므로 제외)
 data/raw/backup/
 data/backup/
+data/cleaned/
+data/processed/backup/
+data/review/
 
 # Jupyter Notebook
 .ipynb_checkpoints/
 # Note: notebooks/ folder is included for statistical analysis
+scripts/analysis/
 
 # Logs
 *.log
