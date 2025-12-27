@@ -41,13 +41,6 @@ env/
 
 # Data files (optional - 크롤링 데이터는 용량이 크므로 제외)
 data/raw/backup/
-data/raw/*.csv
-data/raw/*.json
-data/preprocessed/
-data/processed/
-data/results/
-data/review/
-data/cleaned/
 data/backup/
 
 # Jupyter Notebook
