@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+.venv_fix/
+venv/
+ENV/
+env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment variables
+.env
+.env.local
+
+# Data files (optional - 크롤링 데이터는 용량이 크므로 제외)
+data/raw/backup/
+data/raw/*.csv
+data/raw/*.json
+data/preprocessed/
+data/processed/
+data/results/
+data/review/
+data/cleaned/
+data/backup/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+# Note: notebooks/ folder is included for statistical analysis
+
+# Logs
+*.log
+
+# Chrome driver
+chromedriver
+geckodriver
+
+# Backup files
+*.bak
+*.backup
+*/backup/
