@@ -1,12 +1,14 @@
 # 📁 KOR4001 국어학연습 개인 연구
 
-젊은 세대가 사용하는 온라인 커뮤니티의 문장 종결 방식과 문형을 분석하여 커뮤니티별 방언 구획을 시도하는 연구입니다.
+**김현서(2025), 문장 종결 방식을 통한 온라인 커뮤니티 언어의 방언적 구획 시도 - 빈도 분석, 거리 행렬, MDS, 군집화를 중심으로**
+
+젊은 세대가 사용하는 온라인 커뮤니티의 문장 종결 방식과 문형을 분석하여 커뮤니티별 방언 구획과 성별 변인에 따른 설명을 시도한 연구입니다.
 
 ## 프로젝트 개요
 
-- **목적**: 다양한 온라인 커뮤니티(DC Inside, TheQoo 등)의 게시글을 수집하여 종결 어미 사용 패턴 분석
+- **목적**: 젊은 세대가 주로 사용하는 온라인 커뮤니티(DC Inside, TheQoo)의 게시글을 수집하여 종결 표현 사용 패턴 분석 및 구획 시도, 성별 변인에 따른 사회방언학적 설명 시도
 - **주요 기술**: Python, Bareun 형태소 분석기, Selenium, Pandas, matplotlib
-- **분석 방법**: 형태소 분석 → 종결 어미 추출 → 카이제곱 검정
+- **분석 방법**: 형태소 분석 → 종결 어미 추출 → 빈도 기반 분석, 거리 기반 분석(Bray-Curtis 거리 기반 분석, Cosine 유사도 기반 분석)
 
 ## 데이터 처리 파이프라인
 
@@ -16,20 +18,17 @@ flowchart TB
         direction TB
         A1[scripts/crawling/run_dcinside.py]
         A2[scripts/crawling/run_theqoo.py]
-        A3[scripts/crawling/run_instiz.py]
         
         B1[crawler/sites/dcinside.py]
         B2[crawler/sites/theqoo.py]
-        B3[crawler/sites/instiz.py]
         
         C[crawler/base.py<br/>BaseCrawler]
         D[crawler/driver.py<br/>Selenium WebDriver]
         
         A1 --> B1
         A2 --> B2
-        A3 --> B3
         
-        B1 & B2 & B3 --> C
+        B1 & B2 --> C
         C --> D
     end
     
@@ -37,7 +36,6 @@ flowchart TB
         direction TB
         R1[(data/raw/<br/>dcinside_*.csv)]
         R2[(data/raw/<br/>theqoo_*.csv)]
-        R3[(data/raw/<br/>instiz_*.csv)]
     end
     
     subgraph Preprocessing["2️⃣ 전처리 (Preprocessing)"]
@@ -445,7 +443,7 @@ scraper.save_to_csv(posts, "theqoo_beauty_category_25604")
 ### 크롤링 오류
 - Selenium WebDriver가 설치되어 있는지 확인
 - Chrome 브라우저 버전과 ChromeDriver 버전 호환성 확인
-- 사이트 구조가 변경되었을 수 있으므로 크롤러 코드 업데이트 필요
+- 사이트 구조가 변경될 경우 크롤러 코드 업데이트 필요
 
 ### 한글 폰트 문제 (matplotlib)
 Mac의 경우 'AppleGothic', Windows의 경우 'Malgun Gothic' 등으로 설정 변경
