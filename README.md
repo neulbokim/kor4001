@@ -172,14 +172,13 @@ flowchart TB
 - `morph_*.csv`의 JSON 결과를 파싱하여 문장 단위로 행 확장
 - **출력**: `data/processed/expanded_{community}.csv`
 
-**Step 5: Intent 정리** (`05_prepare_intent.py`)
-- 최종 분석용 데이터 생성
 
-#### 3️⃣ 통계 분석 (Analysis)
-- 커뮤니티별 종결 어미 빈도 계산
-- 문형 분포 비교
-- 카이제곱 검정을 통한 통계적 유의성 검증
-- matplotlib을 통한 시각화
+#### 3️⃣ 빈도 기반 분석 및 거리 기반 분석 (Analysis)
+- 종결 어미/기호 빈도 기반 Top 30 시각화
+- 거리 행렬 생성 (Bray-Curtis 거리 기반, Cosine 유사도 기반)
+- MDS 지도 시각화
+- 계층적 군집화 및 덴드로그램 시각화
+
 ## 프로젝트 구조
 
 ```
@@ -194,19 +193,22 @@ project/
 │   ├── processed/               # 분석 준비 완료 데이터
 │   └── results/                 # 분석 결과 (통계, 시각화)
 │
+├── notebooks/                   # 분석용 노트북
+│   ├── 01_EDA_heatmap.ipynb     # 히트맵 기반 탐색적 분석
+│   ├── 02_Bray-Curtis.ipynb     # Bray-Curtis 거리 기반 MDS · 덴드로그램
+│   └── 03_Cosine.ipynb          # Cosine 거리 기반 MDS · 덴드로그램
+│
 ├── scripts/
 │   ├── crawling/                # 크롤링 스크립트
 │   │   ├── run_dcinside.py
 │   │   ├── run_theqoo.py
-│   │   └── run_all.py
-│   ├── preprocessing/           # 전처리 스크립트
-│   │   ├── 01_clean_data.py     # 데이터 정제
-│   │   ├── 02_tag_bareun.py     # Bareun 태깅
-│   │   ├── 03_process_morph.py  # Morph 후처리 (종결어미/기호 추출)
-│   │   ├── 04_expand_sentences.py # 문장 단위 확장
-│   │   └── 05_prepare_intent.py # Intent 정리
-│   └── analysis/                # 분석 스크립트
-│       └── analyze.py           # 통계 분석 및 시각화
+│   │   └── run_communities.py
+│   │
+│   └── preprocessing/           # 전처리 스크립트
+│       ├── 01_clean_data.py     # 데이터 정제
+│       ├── 02_tag_bareun.py     # Bareun 태깅
+│       ├── 03_process_morph.py  # Morph 후처리 (종결어미/기호 추출)
+│       └── 04_expand_sentences.py # 문장 단위 확장   
 │
 ├── utils/                       # 유틸리티 라이브러리 (OOP)
 │   ├── __init__.py
@@ -215,11 +217,10 @@ project/
 │   └── data_pipeline.py         # (선택) DataPipeline 유틸
 │
 └── crawler/                     # 크롤러 라이브러리
-    ├── base.py
     ├── sites/
     │   ├── dcinside.py
     │   ├── theqoo.py
-    │   └── instiz.py
+    ├── base.py
     └── ...
 ```
 
@@ -260,33 +261,6 @@ BAREUN_API_KEY=your_bareun_api_key_here
 
 > **참고**: Bareun API 키는 [Bareun AI](https://bareun.ai)에서 발급받을 수 있습니다.
 
-## 핵심 라이브러리 (utils/)
-
-프로젝트는 재사용 가능한 OOP 기반 유틸리티 클래스를 제공합니다:
-
-### BareunAnalyzer (Singleton)
-```python
-from utils import BareunAnalyzer
-
-analyzer = BareunAnalyzer()  # 어디서든 동일한 인스턴스 반환
-result = analyzer.analyze("안녕하세요")
-```
-- Bareun API를 Singleton 패턴으로 관리
-- 불필요한 재초기화 방지
-
-### MorphAnalyzer
-```python
-from utils import MorphAnalyzer
-
-analyzer = MorphAnalyzer()
-endings = analyzer.extract_final_endings([["하", "EF"], ["시", "EC"]])
-punctuation, symbols = analyzer.extract_symbols("좋아?? ㅎㅎ")
-```
-- Bareun 결과 토큰을 기반으로 종결 어미 추출
-- 반복된 감정 표현(ㅋ/ㅎ, ㅠ/ㅜ)과 문장부호(?!, !!, …) 추출
-- `split_sentences`로 줄바꿈/공백을 고려한 문장 분리 보조 기능 제공
-- `is_banmal`을 통해 종결어미 기반 반말 판단 참고 가능
-
 ## 사용 방법
 
 ### 전체 파이프라인 실행
@@ -312,12 +286,6 @@ python scripts/crawling/run_all.py
   - DC Inside: 1페이지당 약 50개 게시글
   - TheQoo: 1페이지당 약 20개 게시글
   - 예시: `--max-pages 100` → DC Inside는 약 5,000개, TheQoo는 약 2,000개 게시글 수집
-
-> **참고**: 
-> - 페이지 수가 많을수록 크롤링 시간이 길어집니다.
-> - 과도한 요청은 IP 차단을 유발할 수 있으므로 주의하세요.
-> - 크롤링은 해당 사이트의 이용 약관을 준수해야 합니다.
-
 
 #### 2. 데이터 정제
 ```bash
@@ -345,7 +313,7 @@ python scripts/preprocessing/02_tag_bareun.py --gallery "수능"
 ```bash
 python scripts/preprocessing/03_process_morph.py
 
-# 대화형 모드 (모호한 태그 수동 검토) + 특정 갤러리 필터:
+# (선택) 대화형 모드 (모호한 태그 수동 검토) + 특정 갤러리 필터:
 python scripts/preprocessing/03_process_morph.py --interactive --gallery "수능"
 ```
 
@@ -389,29 +357,29 @@ python scripts/preprocessing/04_expand_sentences.py --gallery "수능"
 ```
 
 **수행 작업**:
-- `sentence_results` JSON 파싱
+- `sentence_results` JSON 파싱 
 - 각 문장을 개별 행으로 확장
 - 출력: `data/processed/expanded_{community}.csv`
 
-#### 6. 통계 분석 및 시각화
-```bash
-python scripts/analysis/analyze.py
+#### 6. 빈도 기반 분석, 거리 기반 분석 수행
+```
+kor4001/
+└── notebooks/          
+    ├── 01_EDA_heatmap.ipynb   # 빈도 기반 분석
+    ├── 02_Bray-Curtis.ipynb   # 거리 기반(Bray-Curtis) 분석
+    └── 03_Cosine.ipynb        # 거리 기반(Cosine) 분석
 ```
 
 **수행 작업**:
-- 커뮤니티별 통계 계산
-- 종결 어미 및 문형(평서형, 의문형 등) 빈도 분석
-- 카이제곱 검정 및 시각화
+- **빈도 기반 분석**
+  - 종결 어미 Top 30 히트맵
+  - 기호 패턴 Top 30 히트맵
+- **거리 기반 분석**
+  -  특성 벡터 생성
+  -  거리 행렬 계산
+  -  MDS 수행 및 시각화
+  -  계층적 군집 분석 수행 및 덴드로그램 시각화
 - 출력: `data/results/` 폴더
-
-## 주요 결과물
-
-분석 완료 후 `data/results/` 폴더에 다음 파일들이 생성됩니다:
-
-- `community_stats.csv`: 커뮤니티별 게시글 수, 종결 어미 수 등
-- `top_endings_by_community.png`: 커뮤니티별 상위 종결 어미 시각화
-- `specific_endings_distribution.png`: 특정 어미 분포 비교
-- `stats_result.txt`: 카이제곱 검정 결과
 
 ## 크롤러 사용법
 
@@ -449,7 +417,8 @@ scraper.save_to_csv(posts, "theqoo_beauty_category_25604")
 Mac의 경우 'AppleGothic', Windows의 경우 'Malgun Gothic' 등으로 설정 변경
 
 ## 프로젝트 정보
-- 2025-2학기 국어학연습(KOR4001) 기말 개인 연구
+- 2025-2학기 국어학연습(KOR4001) 기말 개인 연구 [paper](./251227_학기말과제_20220042_김현서.pdf)
 - 연구 기간: 2025년 11월 1일 ~ 2025년 12월 27일
 - 연구자: 서강대학교 국어국문학과 22학번 김현서 (neulbokim@sogang.ac.kr)
 - 지도교수: 서강대학교 국어국문학과 김한별 교수 (hbkim@sogang.ac.kr)
+- (2026.01.15) 2025 서강대학교 국어국문학과 학술대회(어학) 학부생 발표 [자료](문장%20종결%20방식을%20통한%20온라인%20커뮤니티%20통신%20언어의%20방언적%20구획%20시도.pdf)
